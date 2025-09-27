@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GERD Timelapse Analysis - Professional Water Intelligence Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(14, 165, 233, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.15) 0%, transparent 40%),
+                linear-gradient(135deg, #020617 0%, #082f49 50%, #0c4a6e 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .background-effects {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .floating-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(139, 92, 246, 0.4);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background: 
+                radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), transparent 70%),
+                linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(14, 165, 233, 0.2));
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #0ea5e9, #06b6d4, #0891b2, #0ea5e9);
+            border-radius: 20px;
+            opacity: 0.4;
+            z-index: -1;
+            animation: rotate 8s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .water-wave-icon {
+            width: 35px;
+            height: 35px;
+            fill: rgba(255,255,255,0.95);
+            filter: drop-shadow(0 2px 8px rgba(6, 182, 212, 0.3));
+        }
+
+        .logo h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff, #e0f2fe, #bae6fd);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-subtitle {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.8);
+            font-weight: 500;
+            margin-top: -2px;
+            background: linear-gradient(90deg, rgba(6, 182, 212, 0.8), rgba(14, 165, 233, 0.8));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .demo-badge {
+            font-size: 0.75rem;
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            margin-left: 1rem;
+            font-weight: 600;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            padding: 0.8rem 1.8rem;
+            backdrop-filter: blur(15px);
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+            font-size: 0.9rem;
+            position: relative;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .nav-btn.dashboard {
+            background: rgba(6, 182, 212, 0.15);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            color: #06b6d4;
+        }
+
+        .nav-btn.dashboard:hover {
+            border-color: rgba(6, 182, 212, 0.5);
+            background: rgba(6, 182, 212, 0.2);
+        }
+
+        .nav-btn.resources {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #10b981;
+        }
+
+        .nav-btn.resources:hover {
+            border-color: rgba(16, 185, 129, 0.5);
+            background: rgba(16, 185, 129, 0.2);
+        }
+                .nav-btn.resources:hover {
+            border-color: rgba(16, 185, 129, 0.5);
+            background: rgba(16, 185, 129, 0.2);
+        }
+
+        .nav-btn.conservation {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+        }
+                .nav-btn.timelapse:hover {
+            border-color: rgba(139, 92, 246, 0.5);
+            background: rgba(139, 92, 246, 0.2);
+        }
+
+        .nav-btn.real-time {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #f59e0b;
+        }
+        .nav-btn.timelapse {
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: #8b5cf6;
+        }
+
+        .nav-btn.timelapse:hover {
+            border-color: rgba(139, 92, 246, 0.5);
+            background: rgba(139, 92, 246, 0.2);
+        }
+
+        .nav-btn.early-warning {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .nav-btn.early-warning:hover {
+            border-color: rgba(239, 68, 68, 0.5);
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .hero-section {
+            text-align: center;
+            margin-bottom: 4rem;
+            padding: 2rem 0;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffffff, #ddd6fe, #8b5cf6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            letter-spacing: -0.03em;
+        }
+
+        .hero-subtitle {
+            font-size: 1.3rem;
+            color: rgba(255,255,255,0.8);
+            max-width: 800px;
+            margin: 0 auto 2rem;
+            line-height: 1.6;
+        }
+
+        .timelapse-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(25px);
+            border-radius: 24px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            margin-bottom: 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timelapse-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #8b5cf6, #a855f7, #7c3aed);
+        }
+
+        .timelapse-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .timelapse-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: rgba(255,255,255,0.95);
+            margin-bottom: 1rem;
+        }
+
+        .timelapse-description {
+            color: rgba(255,255,255,0.7);
+            font-size: 1.1rem;
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .slideshow-container {
+            position: relative;
+            width: 1000px;
+            height: 963px;
+            margin: 0 auto 2rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .slide {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        .slide img {
+            width: 1000px;
+            height: 963px;
+            display: block;
+            object-fit: cover;
+        }
+
+        .slide-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            padding: 2rem;
+            color: white;
+        }
+
+        .slide-date {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .slide-caption {
+            font-size: 1rem;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        .slide-metadata {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(139, 92, 246, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .metadata-item {
+            text-align: center;
+        }
+
+        .metadata-label {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 0.25rem;
+        }
+
+        .metadata-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #8b5cf6;
+        }
+
+        .timelapse-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            padding: 0.75rem 1.5rem;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            color: #8b5cf6;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
+        .control-btn:hover {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: rgba(139, 92, 246, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .control-btn.active {
+            background: rgba(139, 92, 246, 0.3);
+            border-color: #8b5cf6;
+        }
+
+        .control-icon {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        .progress-container {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            cursor: pointer;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #8b5cf6, #a855f7);
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.9rem;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .speed-label {
+            color: rgba(255,255,255,0.9);
+            font-weight: 500;
+        }
+
+        .speed-slider {
+            width: 150px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #8b5cf6;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .speed-value {
+            color: #8b5cf6;
+            font-weight: 600;
+            min-width: 40px;
+        }
+
+        .analysis-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 3rem;
+        }
+
+        .analysis-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: rgba(255,255,255,0.95);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .analysis-card {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .analysis-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(139, 92, 246, 0.3);
+            background: rgba(139, 92, 246, 0.05);
+        }
+
+        .analysis-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(139, 92, 246, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .analysis-card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 0.5rem;
+        }
+
+        .analysis-card-desc {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .thumbnail-strip {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+            margin-top: 2rem;
+        }
+
+        .thumbnail {
+            min-width: 120px;
+            height: 80px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            overflow: hidden;
+        }
+
+        .thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .thumbnail:hover {
+            transform: scale(1.1);
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+
+        .thumbnail.active {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #8b5cf6;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .slide img {
+                height: 400px;
+            }
+            
+            .timelapse-controls {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .speed-control {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-effects" id="backgroundEffects"></div>
+    
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg class="water-wave-icon" viewBox="0 0 24 24">
+                        <path d="M3.5 18.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                        <path d="M3 12.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                        <path d="M3 6.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>GERD AI Analytics</h1>
+                    <div style="display: flex; align-items: center;">
+                        <div class="logo-subtitle">Satellite Timelapse Analysis</div>
+                        <span class="demo-badge">DEMO VERSION</span>
+                    </div>
+                </div>
+            </div>
+        <nav class="nav-buttons">
+         <a href="gerd_with_botpress_sidebar.html" class="nav-btn dashboard">Dashboard</a>
+         <a href="resources_page.html" class="nav-btn resources">Resources</a>
+         <a href="index.html" class="nav-btn timelapse">Timelapse</a>
+         <a href="gerd_solutions_center.html" class="nav-btn early-warning">Solutions Center</a>
+         <a href="realtime_monitoring.html" class="nav-btn real-time">Real-Time</a>
+         <a href="water_conservation_guide.html" class="nav-btn conservation">Guidelines</a>
+         </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <h1 class="hero-title">GERD Construction Timelapse</h1>
+            <p class="hero-subtitle">
+                Professional satellite imagery analysis showcasing 13 years of Grand Ethiopian Renaissance Dam development 
+                through high-resolution Landsat observations from 2010 to 2023
+            </p>
+        </section>
+
+        <!-- Timelapse Viewer -->
+        <section class="timelapse-container">
+            <div class="timelapse-header">
+                <h2 class="timelapse-title">Multi-Temporal Satellite Analysis</h2>
+                <p class="timelapse-description">
+                    Advanced time-series visualization combining Landsat 5, 8, and 9 imagery to document infrastructure development, 
+                    reservoir filling progression, and environmental impact assessment over more than a decade.
+                </p>
+            </div>
+
+            <div class="slideshow-container" id="slideshowContainer">
+                <div class="slide active" data-year="2010" data-satellite="Landsat 5">
+                    <img src="Grand Ethiopian Renaissance Dam, Ethiopia _ EROS/imgi_6_2010-GERD_new.png" alt="GERD 2010">
+                    <div class="slide-overlay">
+                        <div class="slide-date">January 12, 2010</div>
+                        <div class="slide-caption">Pre-construction environmental baseline documenting natural Blue Nile river course, original flow patterns, and undisturbed watershed conditions. Critical reference point for comprehensive environmental impact assessment and change detection analysis.</div>
+                        <div class="slide-metadata">
+                            <div class="metadata-item">
+                                <div class="metadata-label">Satellite Mission</div>
+                                <div class="metadata-value">Landsat 5 TM</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">WRS Path/Row</div>
+                                <div class="metadata-value">171/52,53</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Spatial Resolution</div>
+                                <div class="metadata-value">30m multispectral</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Project Phase</div>
+                                <div class="metadata-value">Planning & EIA</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">River Flow Status</div>
+                                <div class="metadata-value">Natural State</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Water Surface Area</div>
+                                <div class="metadata-value">~15.2 km²</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slide" data-year="2016" data-satellite="Landsat 8">
+                    <img src="Grand Ethiopian Renaissance Dam, Ethiopia _ EROS/imgi_7_2016-GERD_new.png" alt="GERD 2016">
+                    <div class="slide-overlay">
+                        <div class="slide-date">January 13, 2016</div>
+                        <div class="slide-caption">Major construction milestone with primary dam structure 45% complete. Initial water impoundment visible upstream, creating preliminary reservoir formation. Infrastructure access roads and support facilities clearly established across the construction zone.</div>
+                        <div class="slide-metadata">
+                            <div class="metadata-item">
+                                <div class="metadata-label">Satellite Mission</div>
+                                <div class="metadata-value">Landsat 8 OLI</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">WRS Path/Row</div>
+                                <div class="metadata-value">171/52,53</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Spatial Resolution</div>
+                                <div class="metadata-value">30m multispectral</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Construction Status</div>
+                                <div class="metadata-value">Primary Phase</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Dam Completion</div>
+                                <div class="metadata-value">~45% Complete</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Water Surface Area</div>
+                                <div class="metadata-value">~42.7 km²</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slide" data-year="2020" data-satellite="Landsat 8">
+                    <img src="Grand Ethiopian Renaissance Dam, Ethiopia _ EROS/imgi_8_2020-GERD_new.png" alt="GERD 2020">
+                    <div class="slide-overlay">
+                        <div class="slide-date">January 24, 2020</div>
+                        <div class="slide-caption">Pre-filling phase with dam construction 78% complete. Substantial reservoir area prepared for initial water storage. Power generation infrastructure and transmission systems approaching operational readiness for first turbine activation.</div>
+                        <div class="slide-metadata">
+                            <div class="metadata-item">
+                                <div class="metadata-label">Satellite Mission</div>
+                                <div class="metadata-value">Landsat 8 OLI</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">WRS Path/Row</div>
+                                <div class="metadata-value">171/52,53</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Spatial Resolution</div>
+                                <div class="metadata-value">30m multispectral</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Construction Status</div>
+                                <div class="metadata-value">Final Phase</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Dam Completion</div>
+                                <div class="metadata-value">~78% Complete</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Water Surface Area</div>
+                                <div class="metadata-value">~156.3 km²</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slide" data-year="2021" data-satellite="Landsat 8">
+                    <img src="Grand Ethiopian Renaissance Dam, Ethiopia _ EROS/imgi_9_2021-GERD_new.png" alt="GERD 2021">
+                    <div class="slide-overlay">
+                        <div class="slide-date">January 10, 2021</div>
+                        <div class="slide-caption">First filling milestone achieved with reservoir water levels reaching 560m elevation. Significant expansion of water surface area demonstrates successful initial impoundment. Two turbines operational, generating first commercial power output to national grid.</div>
+                        <div class="slide-metadata">
+                            <div class="metadata-item">
+                                <div class="metadata-label">Satellite Mission</div>
+                                <div class="metadata-value">Landsat 8 OLI</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">WRS Path/Row</div>
+                                <div class="metadata-value">171/52,53</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Spatial Resolution</div>
+                                <div class="metadata-value">30m multispectral</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Operational Status</div>
+                                <div class="metadata-value">First Filling</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Water Level</div>
+                                <div class="metadata-value">560m elevation</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Water Surface Area</div>
+                                <div class="metadata-value">~312.4 km²</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slide" data-year="2022" data-satellite="Landsat 9">
+                    <img src="Grand Ethiopian Renaissance Dam, Ethiopia _ EROS/imgi_10_2022-GERD_new.png" alt="GERD 2022">
+                    <div class="slide-overlay">
+                        <div class="slide-date">January 21, 2022</div>
+                        <div class="slide-caption">Second filling phase completion with reservoir reaching 590m elevation. Enhanced operational capacity with four turbines generating 1,000MW. Advanced water management systems optimizing seasonal flow regulation and downstream coordination.</div>
+                        <div class="slide-metadata">
+                            <div class="metadata-item">
+                                <div class="metadata-label">Satellite Mission</div>
+                                <div class="metadata-value">Landsat 9 OLI-2</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">WRS Path/Row</div>
+                                <div class="metadata-value">171/52,53</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Spatial Resolution</div>
+                                <div class="metadata-value">30m multispectral</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Operational Status</div>
+                                <div class="metadata-value">Second Filling</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Water Level</div>
+                                <div class="metadata-value">590m elevation</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Water Surface Area</div>
+                                <div class="metadata-value">~485.7 km²</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slide" data-year="2023" data-satellite="Landsat 9">
+                    <img src="Grand Ethiopian Renaissance Dam, Ethiopia _ EROS/imgi_11_2023-GERD_new.png" alt="GERD 2023">
+                    <div class="slide-overlay">
+                        <div class="slide-date">January 8, 2023</div>
+                        <div class="slide-caption">Third filling phase with mature reservoir system optimization and full hydroelectric generation capabilities demonstrating operational excellence. Reservoir management protocols established for sustainable multi-year operation and regional water coordination.</div>
+                        <div class="slide-metadata">
+                            <div class="metadata-item">
+                                <div class="metadata-label">Satellite Mission</div>
+                                <div class="metadata-value">Landsat 9 OLI-2</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">WRS Path/Row</div>
+                                <div class="metadata-value">171/52,53</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Spatial Resolution</div>
+                                <div class="metadata-value">30m multispectral</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Operational Status</div>
+                                <div class="metadata-value">Third Filling</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Water Level</div>
+                                <div class="metadata-value">625m elevation</div>
+                            </div>
+                            <div class="metadata-item">
+                                <div class="metadata-label">Water Surface Area</div>
+                                <div class="metadata-value">~672.9 km²</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-container">
+                <div class="progress-bar" onclick="seekToPosition(event)">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-info">
+                    <span id="currentTime">2010</span>
+                    <span id="totalTime">2023 (13 Years Complete Dataset)</span>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="timelapse-controls">
+                <button class="control-btn" onclick="previousSlide()">
+                    <svg class="control-icon" viewBox="0 0 24 24">
+                        <path d="M19 12H5m7-7l-7 7 7 7"/>
+                    </svg>
+                    Previous
+                </button>
+
+                <button class="control-btn" id="playPauseBtn" onclick="togglePlayPause()">
+                    <svg class="control-icon" id="playIcon" viewBox="0 0 24 24">
+                        <path d="M5 3l14 9-14 9V3z"/>
+                    </svg>
+                    <svg class="control-icon" id="pauseIcon" viewBox="0 0 24 24" style="display: none;">
+                        <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                    </svg>
+                    <span id="playPauseText">Play</span>
+                </button>
+
+                <button class="control-btn" onclick="nextSlide()">
+                    <svg class="control-icon" viewBox="0 0 24 24">
+                        <path d="M5 12h14m-7-7l7 7-7 7"/>
+                    </svg>
+                    Next
+                </button>
+
+                <div class="speed-control">
+                    <span class="speed-label">Speed:</span>
+                    <input type="range" class="speed-slider" min="0.5" max="5" step="0.5" value="1.5" id="speedSlider" oninput="updateSpeed()">
+                    <span class="speed-value" id="speedValue">1.5x</span>
+                </div>
+
+                <button class="control-btn" onclick="downloadCurrentImage()">
+                    <svg class="control-icon" viewBox="0 0 24 24">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7,10 12,15 17,10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Download
+                </button>
+            </div>
+
+            <!-- Thumbnail Strip -->
+            <div class="thumbnail-strip" id="thumbnailStrip">
+                <!-- Thumbnails will be generated by JavaScript -->
+            </div>
+        </section>
+
+        <!-- Analysis Section -->
+        <section class="analysis-section">
+            <h2 class="analysis-title">Professional Satellite Analysis Insights</h2>
+            <div class="analysis-grid">
+                <div class="analysis-card">
+                    <div class="analysis-icon">
+                        <svg width="24" height="24" fill="#8b5cf6" viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10 5 10-5"/>
+                            <path d="M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <h3 class="analysis-card-title">Multi-Sensor Integration</h3>
+                    <p class="analysis-card-desc">Landsat 5, 8, and 9 imagery provides continuous 30-meter resolution monitoring with consistent spectral bands for reliable change detection analysis.</p>
+                </div>
+
+                <div class="analysis-card">
+                    <div class="analysis-icon">
+                        <svg width="24" height="24" fill="#8b5cf6" viewBox="0 0 24 24">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9,22 9,12 15,12 15,22"/>
+                        </svg>
+                    </div>
+                    <h3 class="analysis-card-title">Infrastructure Development</h3>
+                    <p class="analysis-card-desc">Progressive construction phases clearly visible from pre-development through operational status, documenting engineering milestones and completion timelines.</p>
+                </div>
+
+                <div class="analysis-card">
+                    <div class="analysis-icon">
+                        <svg width="24" height="24" fill="#8b5cf6" viewBox="0 0 24 24">
+                            <path d="M3.5 18.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                            <path d="M3 12.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                            <path d="M3 6.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                        </svg>
+                    </div>
+                    <h3 class="analysis-card-title">Reservoir Dynamics</h3>
+                    <p class="analysis-card-desc">Detailed water surface area expansion tracking enables volumetric analysis, filling pattern assessment, and operational capacity evaluation over time.</p>
+                </div>
+
+                <div class="analysis-card">
+                    <div class="analysis-icon">
+                        <svg width="24" height="24" fill="#8b5cf6" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12,6 12,12 16,14"/>
+                        </svg>
+                    </div>
+                    <h3 class="analysis-card-title">Temporal Resolution</h3>
+                    <p class="analysis-card-desc">13-year observation period captures complete project lifecycle from natural state through full operational capability with consistent annual intervals.</p>
+                </div>
+
+                <div class="analysis-card">
+                    <div class="analysis-icon">
+                        <svg width="24" height="24" fill="#8b5cf6" viewBox="0 0 24 24">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14,2 14,8 20,8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                    </div>
+                    <h3 class="analysis-card-title">Quantitative Assessment</h3>
+                    <p class="analysis-card-desc">Standardized imagery enables precise measurements of surface area changes, construction progress metrics, and environmental impact quantification.</p>
+                </div>
+
+                <div class="analysis-card">
+                    <div class="analysis-icon">
+                        <svg width="24" height="24" fill="#8b5cf6" viewBox="0 0 24 24">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            <polyline points="7.5,4.21 12,6.81 16.5,4.21"/>
+                            <polyline points="7.5,19.79 7.5,14.6 3,12"/>
+                            <polyline points="21,12 16.5,14.6 16.5,19.79"/>
+                        </svg>
+                    </div>
+                    <h3 class="analysis-card-title">Professional Applications</h3>
+                    <p class="analysis-card-desc">Ideal for engineering assessments, environmental compliance monitoring, stakeholder reporting, and strategic planning for similar infrastructure projects.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Global variables
+        let currentSlideIndex = 0;
+        let isPlaying = false;
+        let playInterval;
+        let slides = [];
+        let playSpeed = 1500; // milliseconds
+
+        // Initialize the timelapse
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTimelapse();
+            createFloatingParticles();
+            generateThumbnails();
+        });
+
+        function initializeTimelapse() {
+            slides = document.querySelectorAll('.slide');
+            updateProgressBar();
+            updateSlideInfo();
+        }
+
+        function createFloatingParticles() {
+            const container = document.getElementById('backgroundEffects');
+            for (let i = 0; i < 15; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'floating-particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        function generateThumbnails() {
+            const thumbnailStrip = document.getElementById('thumbnailStrip');
+            slides.forEach((slide, index) => {
+                const thumbnail = document.createElement('div');
+                thumbnail.className = `thumbnail ${index === 0 ? 'active' : ''}`;
+                thumbnail.onclick = () => goToSlide(index);
+                
+                const img = slide.querySelector('img').cloneNode();
+                thumbnail.appendChild(img);
+                thumbnailStrip.appendChild(thumbnail);
+            });
+        }
+
+        function showSlide(index) {
+            // Hide all slides
+            slides.forEach(slide => slide.classList.remove('active'));
+            
+            // Show current slide
+            slides[index].classList.add('active');
+            
+            // Update thumbnails
+            document.querySelectorAll('.thumbnail').forEach((thumb, i) => {
+                thumb.classList.toggle('active', i === index);
+            });
+            
+            currentSlideIndex = index;
+            updateProgressBar();
+            updateSlideInfo();
+        }
+
+        function nextSlide() {
+            const nextIndex = (currentSlideIndex + 1) % slides.length;
+            showSlide(nextIndex);
+        }
+
+        function previousSlide() {
+            const prevIndex = (currentSlideIndex - 1 + slides.length) % slides.length;
+            showSlide(prevIndex);
+        }
+
+        function goToSlide(index) {
+            showSlide(index);
+        }
+
+        function togglePlayPause() {
+            const playIcon = document.getElementById('playIcon');
+            const pauseIcon = document.getElementById('pauseIcon');
+            const playPauseText = document.getElementById('playPauseText');
+            
+            if (isPlaying) {
+                // Pause
+                clearInterval(playInterval);
+                isPlaying = false;
+                playIcon.style.display = 'block';
+                pauseIcon.style.display = 'none';
+                playPauseText.textContent = 'Play';
+            } else {
+                // Play
+                playInterval = setInterval(() => {
+                    nextSlide();
+                }, playSpeed);
+                isPlaying = true;
+                playIcon.style.display = 'none';
+                pauseIcon.style.display = 'block';
+                playPauseText.textContent = 'Pause';
+            }
+        }
+
+        function updateSpeed() {
+            const speedSlider = document.getElementById('speedSlider');
+            const speedValue = document.getElementById('speedValue');
+            const speed = parseFloat(speedSlider.value);
+            
+            speedValue.textContent = speed + 'x';
+            playSpeed = 1500 / speed; // Inverse relationship
+            
+            // Restart interval if playing
+            if (isPlaying) {
+                clearInterval(playInterval);
+                playInterval = setInterval(() => {
+                    nextSlide();
+                }, playSpeed);
+            }
+        }
+
+        function updateProgressBar() {
+            const progressFill = document.getElementById('progressFill');
+            const progress = (currentSlideIndex / (slides.length - 1)) * 100;
+            progressFill.style.width = progress + '%';
+        }
+
+        function updateSlideInfo() {
+            const currentTime = document.getElementById('currentTime');
+            const slide = slides[currentSlideIndex];
+            const year = slide.dataset.year;
+            currentTime.textContent = year;
+        }
+
+        function seekToPosition(event) {
+            const progressBar = event.currentTarget;
+            const rect = progressBar.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const progress = clickX / rect.width;
+            const targetSlide = Math.round(progress * (slides.length - 1));
+            
+            showSlide(targetSlide);
+        }
+
+        function downloadCurrentImage() {
+            const currentSlide = slides[currentSlideIndex];
+            const img = currentSlide.querySelector('img');
+            const year = currentSlide.dataset.year;
+            const satellite = currentSlide.dataset.satellite;
+            
+            // Create download link
+            const link = document.createElement('a');
+            link.href = img.src;
+            link.download = `GERD_${year}_${satellite.replace(' ', '_')}.png`;
+            link.click();
+            
+            // Show notification
+            showNotification(`Downloaded ${year} ${satellite} imagery`, 'success');
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = 'satellite-notification ' + type;
+            notification.innerHTML = `
+                <svg style="width: 20px; height: 20px; fill: currentColor;" viewBox="0 0 24 24">
+                    <path d="M20 6L9 17l-5-5"/>
+                </svg>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Keyboard controls
+        document.addEventListener('keydown', function(event) {
+            switch(event.key) {
+                case 'ArrowLeft':
+                    previousSlide();
+                    break;
+                case 'ArrowRight':
+                    nextSlide();
+                    break;
+                case ' ':
+                    event.preventDefault();
+                    togglePlayPause();
+                    break;
+            }
+        });
+
+        // Auto-pause when user switches tabs
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && isPlaying) {
+                togglePlayPause();
+            }
+        });
+    </script>
+
+    <style>
+        .satellite-notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideInRight 0.5s ease;
+            max-width: 400px;
+        }
+
+        .satellite-notification.success {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            border: 1px solid #8b5cf6;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</body>
+</html>

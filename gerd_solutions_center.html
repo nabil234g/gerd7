@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Early Warning Systems - GERD Professional Water Intelligence</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(14, 165, 233, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.15) 0%, transparent 40%),
+                linear-gradient(135deg, #020617 0%, #082f49 50%, #0c4a6e 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .background-effects {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .floating-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(239, 68, 68, 0.4);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background: 
+                radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), transparent 70%),
+                linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(14, 165, 233, 0.2));
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #0ea5e9, #06b6d4, #0891b2, #0ea5e9);
+            border-radius: 20px;
+            opacity: 0.4;
+            z-index: -1;
+            animation: rotate 8s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .water-wave-icon {
+            width: 35px;
+            height: 35px;
+            fill: rgba(255,255,255,0.95);
+            filter: drop-shadow(0 2px 8px rgba(6, 182, 212, 0.3));
+        }
+
+        .logo h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff, #e0f2fe, #bae6fd);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-subtitle {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.8);
+            font-weight: 500;
+            margin-top: -2px;
+            background: linear-gradient(90deg, rgba(6, 182, 212, 0.8), rgba(14, 165, 233, 0.8));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .demo-badge {
+            font-size: 0.75rem;
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            margin-left: 1rem;
+            font-weight: 600;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            padding: 0.8rem 1.8rem;
+            backdrop-filter: blur(15px);
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+            font-size: 0.9rem;
+            position: relative;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .nav-btn.conservation {
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #22c55e;
+}
+
+.nav-btn.conservation:hover {
+    border-color: rgba(34, 197, 94, 0.5);
+    background: rgba(34, 197, 94, 0.2);
+}
+                .nav-btn.resources:hover {
+            border-color: rgba(16, 185, 129, 0.5);
+            background: rgba(16, 185, 129, 0.2);
+        }
+
+        .nav-btn.conservation {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+        }
+        .nav-btn.dashboard {
+            background: rgba(6, 182, 212, 0.15);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            color: #06b6d4;
+        }
+
+        .nav-btn.dashboard:hover {
+            border-color: rgba(6, 182, 212, 0.5);
+            background: rgba(6, 182, 212, 0.2);
+        }
+
+        .nav-btn.resources {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #10b981;
+        }
+
+        .nav-btn.resources:hover {
+            border-color: rgba(16, 185, 129, 0.5);
+            background: rgba(16, 185, 129, 0.2);
+        }
+                .nav-btn.timelapse:hover {
+            border-color: rgba(139, 92, 246, 0.5);
+            background: rgba(139, 92, 246, 0.2);
+        }
+
+        .nav-btn.real-time {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #f59e0b;
+        }
+        .nav-btn.timelapse {
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: #8b5cf6;
+        }
+
+        .nav-btn.timelapse:hover {
+            border-color: rgba(139, 92, 246, 0.5);
+            background: rgba(139, 92, 246, 0.2);
+        }
+
+        .nav-btn.early-warning {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .nav-btn.early-warning:hover {
+            border-color: rgba(239, 68, 68, 0.5);
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .hero-section {
+            text-align: center;
+            margin-bottom: 4rem;
+            padding: 2rem 0;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffffff, #fecaca, #ef4444);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            letter-spacing: -0.03em;
+        }
+
+        .hero-subtitle {
+            font-size: 1.3rem;
+            color: rgba(255,255,255,0.8);
+            max-width: 800px;
+            margin: 0 auto 2rem;
+            line-height: 1.6;
+        }
+
+        .system-status {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(25px);
+            border-radius: 24px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            margin-bottom: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .system-status::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981);
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .status-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: rgba(255,255,255,0.95);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .status-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: statusPulse 2s infinite;
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
+        }
+
+        .refresh-btn {
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 8px;
+            color: #06b6d4;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(6, 182, 212, 0.2);
+            border-color: rgba(6, 182, 212, 0.5);
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .status-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .card-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #ffffff, #e0f2fe);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card-label {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-operational {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .status-critical {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .alerts-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(25px);
+            border-radius: 24px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        .alerts-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+        }
+
+        .alerts-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: rgba(255,255,255,0.95);
+            margin-bottom: 2rem;
+        }
+
+        .alert-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border-left: 4px solid transparent;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .alert-item.critical {
+            border-left-color: #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .alert-item.high {
+            border-left-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .alert-item.moderate {
+            border-left-color: #10b981;
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .alert-title {
+            font-weight: 600;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 0.5rem;
+        }
+
+        .alert-message {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 0.5rem;
+        }
+
+        .alert-action {
+            color: rgba(255,255,255,0.8);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .plots-section {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 3rem;
+            margin-bottom: 4rem;
+        }
+
+        .plot-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(25px);
+            border-radius: 24px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .plot-container.trends::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #06b6d4, #0ea5e9);
+        }
+
+        .plot-container.risk::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #8b5cf6, #a855f7);
+        }
+
+        .plot-container.forecast::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #10b981, #059669);
+        }
+
+        .plot-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: rgba(255,255,255,0.95);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .plot-description {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 2rem;
+            text-align: center;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .plot-image {
+            width: 100%;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .plot-image:hover {
+            transform: scale(1.02);
+        }
+
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #06b6d4;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(25px);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 95%;
+            max-height: 95%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: auto;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            color: #ef4444;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .close-modal:hover {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: #ef4444;
+        }
+
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideInRight 0.5s ease;
+            max-width: 400px;
+        }
+
+        .notification.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: 1px solid #10b981;
+        }
+
+        .notification.warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border: 1px solid #f59e0b;
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border: 1px solid #ef4444;
+        }
+
+        .notification.info {
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+            border: 1px solid #06b6d4;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .plots-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-effects" id="backgroundEffects"></div>
+    
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg class="water-wave-icon" viewBox="0 0 24 24">
+                        <path d="M3.5 18.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                        <path d="M3 12.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                        <path d="M3 6.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>GERD AI Analytics</h1>
+                    <div style="display: flex; align-items: center;">
+                        <div class="logo-subtitle">Early Warning Systems</div>
+                        <span class="demo-badge">DEMO VERSION</span>
+                    </div>
+                </div>
+            </div>
+        <nav class="nav-buttons">
+         <a href="gerd_with_botpress_sidebar.html" class="nav-btn dashboard">Dashboard</a>
+         <a href="resources_page.html" class="nav-btn resources">Resources</a>
+         <a href="index.html" class="nav-btn timelapse">Timelapse</a>
+         <a href="gerd_solutions_center.html" class="nav-btn early-warning">Solutions Center</a>
+         <a href="realtime_monitoring.html" class="nav-btn real-time">Real-Time</a>
+         <a href="water_conservation_guide.html" class="nav-btn conservation">Conservation Guide</a>
+         </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <h1 class="hero-title">Early Warning Systems</h1>
+            <p class="hero-subtitle">
+                Advanced monitoring and alert systems for professional water resource management, 
+                providing real-time risk assessment and automated response protocols
+            </p>
+        </section>
+
+        <!-- System Status -->
+        <section class="system-status">
+            <div class="status-header">
+                <div class="status-title">
+                    <div class="status-indicator" id="systemIndicator"></div>
+                    System Status & Health
+                </div>
+                <button class="refresh-btn" onclick="refreshDashboard()">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 4V2l3 3-3 3V6c-3.31 0-6 2.69-6 6 0 1.01.25 1.97.7 2.8L5.24 16.26C4.46 15.04 4 13.57 4 12c0-4.42 3.58-8 8-8z"/>
+                        <path d="M20 12c0 4.42-3.58 8-8 8v2l-3-3 3-3v2c3.31 0 6-2.69 6-6 0-1.01-.25-1.97-.7-2.8l1.46-1.46C19.54 8.96 20 10.43 20 12z"/>
+                    </svg>
+                    Refresh Status
+                </button>
+            </div>
+            
+            <div class="status-grid" id="statusGrid">
+                <!-- Status cards will be populated dynamically -->
+                <div class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <p>Loading system status...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Active Alerts -->
+        <section class="alerts-section">
+            <h2 class="alerts-title">Active Alerts & Notifications</h2>
+            <div id="alertsContainer">
+                <div class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <p>Loading alerts...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analysis Plots -->
+        <section class="plots-section">
+            <!-- Water Level Trends Plot -->
+            <div class="plot-container trends">
+                <h3 class="plot-title">Water Level Trend Analysis</h3>
+                <p class="plot-description">
+                    Comprehensive analysis of water level trends, precipitation patterns, and flow rates over the past 90 days
+                </p>
+                <div id="trendPlotContainer">
+                    <div class="loading-container">
+                        <div class="loading-spinner"></div>
+                        <p>Generating trend analysis...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Assessment Plot -->
+            <div class="plot-container risk">
+                <h3 class="plot-title">Risk Assessment Dashboard</h3>
+                <p class="plot-description">
+                    Multi-dimensional risk evaluation including timeline analysis, level distribution, daily changes, and parameter correlations
+                </p>
+                <div id="riskPlotContainer">
+                    <div class="loading-container">
+                        <div class="loading-spinner"></div>
+                        <p>Calculating risk assessment...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Forecast Analysis Plot -->
+            <div class="plot-container forecast">
+                <h3 class="plot-title">Predictive Analysis & Forecasting</h3>
+                <p class="plot-description">
+                    Machine learning-based forecasting with 30-day predictions, confidence intervals, and model performance metrics
+                </p>
+                <div id="forecastPlotContainer">
+                    <div class="loading-container">
+                        <div class="loading-spinner"></div>
+                        <p>Running predictive models...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Modal for plot zoom -->
+    <div class="modal" id="plotModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closePlotModal()">&times;</button>
+            <div id="plotModalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let dashboardData = null;
+        let refreshInterval = null;
+
+        // Initialize the early warning system
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEarlyWarning();
+            createFloatingParticles();
+            startAutoRefresh();
+        });
+
+        function initializeEarlyWarning() {
+            console.log('Initializing GERD Early Warning System...');
+            loadDashboardData();
+        }
+
+        function createFloatingParticles() {
+            const container = document.getElementById('backgroundEffects');
+            for (let i = 0; i < 15; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'floating-particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        async function loadDashboardData() {
+            try {
+                showNotification('Loading early warning dashboard...', 'info');
+                
+                const response = await fetch('/early_warning_dashboard');
+                
+                if (!response.ok) {
+                    throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    dashboardData = data;
+                    updateSystemStatus(data.system_status, data.current_assessment);
+                    updateAlerts(data.current_assessment.active_alerts);
+                    updatePlots(data.plots);
+                    
+                    showNotification('Dashboard loaded successfully', 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to load dashboard data');
+                }
+                
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                showErrorState(error.message);
+                
+                if (error.message.includes('fetch')) {
+                    showNotification('Unable to connect to monitoring server. Please ensure the backend is running on localhost:5000.', 'error');
+                } else {
+                    showNotification(`Failed to load dashboard: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        function updateSystemStatus(systemStatus, currentAssessment) {
+            const statusGrid = document.getElementById('statusGrid');
+            const systemIndicator = document.getElementById('systemIndicator');
+            
+            // Update system indicator based on overall status
+            const overallStatus = currentAssessment.overall_status;
+            if (overallStatus === 'CRITICAL_MONITORING') {
+                systemIndicator.style.background = '#ef4444';
+                systemIndicator.style.animation = 'statusPulse 1s infinite';
+            } else if (overallStatus === 'ENHANCED_MONITORING') {
+                systemIndicator.style.background = '#f59e0b';
+                systemIndicator.style.animation = 'statusPulse 1.5s infinite';
+            } else {
+                systemIndicator.style.background = '#10b981';
+                systemIndicator.style.animation = 'statusPulse 2s infinite';
+            }
+            
+            statusGrid.innerHTML = `
+                <div class="status-card">
+                    <div class="card-value">${currentAssessment.current_water_level.toFixed(1)}m</div>
+                    <div class="card-label">Current Water Level</div>
+                    <div class="card-status status-operational">MONITORED</div>
+                </div>
+                
+                <div class="status-card">
+                    <div class="card-value">${currentAssessment.daily_trend > 0 ? '+' : ''}${currentAssessment.daily_trend.toFixed(3)}m</div>
+                    <div class="card-label">Daily Trend</div>
+                    <div class="card-status ${Math.abs(currentAssessment.daily_trend) > 0.5 ? 'status-warning' : 'status-operational'}">
+                        ${Math.abs(currentAssessment.daily_trend) > 0.5 ? 'WATCH' : 'NORMAL'}
+                    </div>
+                </div>
+                
+                <div class="status-card">
+                    <div class="card-value">${currentAssessment.weekly_change > 0 ? '+' : ''}${currentAssessment.weekly_change.toFixed(1)}m</div>
+                    <div class="card-label">Weekly Change</div>
+                    <div class="card-status ${Math.abs(currentAssessment.weekly_change) > 3 ? 'status-warning' : 'status-operational'}">
+                        ${Math.abs(currentAssessment.weekly_change) > 3 ? 'SIGNIFICANT' : 'NORMAL'}
+                    </div>
+                </div>
+                
+                <div class="status-card">
+                    <div class="card-value">${currentAssessment.current_precipitation.toFixed(1)}mm</div>
+                    <div class="card-label">Basin Precipitation</div>
+                    <div class="card-status ${currentAssessment.current_precipitation > 50 ? 'status-warning' : 'status-operational'}">
+                        ${currentAssessment.current_precipitation > 50 ? 'HEAVY' : 'NORMAL'}
+                    </div>
+                </div>
+                
+                <div class="status-card">
+                    <div class="card-value">${currentAssessment.risk_factors.composite_score.toFixed(0)}</div>
+                    <div class="card-label">Risk Score</div>
+                    <div class="card-status ${getRiskStatusClass(currentAssessment.risk_factors.composite_score)}">
+                        ${getRiskStatusLabel(currentAssessment.risk_factors.composite_score)}
+                    </div>
+                </div>
+                
+                <div class="status-card">
+                    <div class="card-value">${overallStatus.replace('_', ' ')}</div>
+                    <div class="card-label">System Status</div>
+                    <div class="card-status ${getOverallStatusClass(overallStatus)}">${getOverallStatusLabel(overallStatus)}</div>
+                </div>
+            `;
+        }
+
+        function updateAlerts(alerts) {
+            const alertsContainer = document.getElementById('alertsContainer');
+            
+            if (alerts.length === 0) {
+                alertsContainer.innerHTML = `
+                    <div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.6);">
+                        <h3 style="color: #10b981; margin-bottom: 0.5rem;">No Active Alerts</h3>
+                        <p>All systems are operating within normal parameters. Monitoring continues.</p>
+                    </div>
+                `;
+            } else {
+                alertsContainer.innerHTML = alerts.map(alert => `
+                    <div class="alert-item ${alert.severity.toLowerCase()}">
+                        <div class="alert-title">${alert.type.replace(/_/g, ' ')}</div>
+                        <div class="alert-message">${alert.message}</div>
+                        <div class="alert-action"><strong>Action Required:</strong> ${alert.action_required}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function updatePlots(plots) {
+            // Update trend analysis plot
+            const trendContainer = document.getElementById('trendPlotContainer');
+            if (plots.water_level_trends) {
+                trendContainer.innerHTML = `
+                    <img class="plot-image" src="data:image/png;base64,${plots.water_level_trends}" 
+                         alt="Water Level Trend Analysis" onclick="openPlotModal('${plots.water_level_trends}', 'Water Level Trend Analysis')">
+                `;
+            } else {
+                trendContainer.innerHTML = '<div class="error-message">Failed to load trend analysis</div>';
+            }
+            
+            // Update risk assessment plot
+            const riskContainer = document.getElementById('riskPlotContainer');
+            if (plots.risk_assessment) {
+                riskContainer.innerHTML = `
+                    <img class="plot-image" src="data:image/png;base64,${plots.risk_assessment}" 
+                         alt="Risk Assessment Dashboard" onclick="openPlotModal('${plots.risk_assessment}', 'Risk Assessment Dashboard')">
+                `;
+            } else {
+                riskContainer.innerHTML = '<div class="error-message">Failed to load risk assessment</div>';
+            }
+            
+            // Update forecast plot
+            const forecastContainer = document.getElementById('forecastPlotContainer');
+            if (plots.forecast_analysis) {
+                forecastContainer.innerHTML = `
+                    <img class="plot-image" src="data:image/png;base64,${plots.forecast_analysis}" 
+                         alt="Predictive Analysis & Forecasting" onclick="openPlotModal('${plots.forecast_analysis}', 'Predictive Analysis & Forecasting')">
+                `;
+            } else {
+                forecastContainer.innerHTML = '<div class="error-message">Failed to load forecast analysis</div>';
+            }
+        }
+
+        function showErrorState(errorMessage) {
+            // Update status grid with error state
+            document.getElementById('statusGrid').innerHTML = `
+                <div class="error-message">
+                    <h3 style="margin-bottom: 1rem;">System Connection Error</h3>
+                    <p style="margin-bottom: 1rem;">${errorMessage}</p>
+                    <p>Please check that the backend server is running and try again.</p>
+                </div>
+            `;
+            
+            // Update alerts with error state
+            document.getElementById('alertsContainer').innerHTML = `
+                <div class="error-message">
+                    <p>Unable to retrieve current alerts. Please refresh to try again.</p>
+                </div>
+            `;
+            
+            // Update plots with error state
+            ['trendPlotContainer', 'riskPlotContainer', 'forecastPlotContainer'].forEach(containerId => {
+                document.getElementById(containerId).innerHTML = `
+                    <div class="error-message">
+                        <p>Plot data unavailable. Please ensure the monitoring system is connected.</p>
+                    </div>
+                `;
+            });
+        }
+
+        function getRiskStatusClass(score) {
+            if (score >= 80) return 'status-critical';
+            if (score >= 60) return 'status-warning';
+            return 'status-operational';
+        }
+
+        function getRiskStatusLabel(score) {
+            if (score >= 80) return 'HIGH';
+            if (score >= 60) return 'ELEVATED';
+            if (score >= 40) return 'MODERATE';
+            return 'LOW';
+        }
+
+        function getOverallStatusClass(status) {
+            if (status === 'CRITICAL_MONITORING') return 'status-critical';
+            if (status === 'ENHANCED_MONITORING') return 'status-warning';
+            return 'status-operational';
+        }
+
+        function getOverallStatusLabel(status) {
+            switch(status) {
+                case 'CRITICAL_MONITORING': return 'CRITICAL';
+                case 'ENHANCED_MONITORING': return 'ENHANCED';
+                case 'ACTIVE_MONITORING': return 'ACTIVE';
+                case 'ROUTINE_MONITORING': return 'ROUTINE';
+                default: return 'UNKNOWN';
+            }
+        }
+
+        function refreshDashboard() {
+            showNotification('Refreshing dashboard data...', 'info');
+            loadDashboardData();
+        }
+
+        function startAutoRefresh() {
+            // Refresh every 5 minutes
+            refreshInterval = setInterval(() => {
+                loadDashboardData();
+            }, 300000);
+        }
+
+        function openPlotModal(plotData, title) {
+            const modal = document.getElementById('plotModal');
+            const modalContent = document.getElementById('plotModalContent');
+            
+            modalContent.innerHTML = `
+                <h2 style="color: #06b6d4; margin-bottom: 2rem; text-align: center;">
+                    ${title}
+                </h2>
+                <img src="data:image/png;base64,${plotData}" 
+                     style="width: 100%; border-radius: 12px; margin-bottom: 1rem;">
+                <div style="text-align: center; color: rgba(255,255,255,0.8);">
+                    <p>Professional water intelligence analysis • Right-click to save image</p>
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+
+        function closePlotModal() {
+            document.getElementById('plotModal').style.display = 'none';
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <svg style="width: 20px; height: 20px; fill: currentColor;" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 4000);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('plotModal');
+            if (event.target === modal) {
+                closePlotModal();
+            }
+        }
+
+        // Cleanup interval on page unload
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>

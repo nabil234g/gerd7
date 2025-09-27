@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resources - GERD Professional Water Intelligence</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(14, 165, 233, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.15) 0%, transparent 40%),
+                linear-gradient(135deg, #020617 0%, #082f49 50%, #0c4a6e 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .background-effects {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .floating-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(16, 185, 129, 0.4);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background: 
+                radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), transparent 70%),
+                linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(14, 165, 233, 0.2));
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #0ea5e9, #06b6d4, #0891b2, #0ea5e9);
+            border-radius: 20px;
+            opacity: 0.4;
+            z-index: -1;
+            animation: rotate 8s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .water-wave-icon {
+            width: 35px;
+            height: 35px;
+            fill: rgba(255,255,255,0.95);
+            filter: drop-shadow(0 2px 8px rgba(6, 182, 212, 0.3));
+        }
+
+        .logo h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff, #e0f2fe, #bae6fd);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-subtitle {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.8);
+            font-weight: 500;
+            margin-top: -2px;
+            background: linear-gradient(90deg, rgba(6, 182, 212, 0.8), rgba(14, 165, 233, 0.8));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .demo-badge {
+            font-size: 0.75rem;
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            margin-left: 1rem;
+            font-weight: 600;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            padding: 0.8rem 1.8rem;
+            backdrop-filter: blur(15px);
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+            font-size: 0.9rem;
+            position: relative;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .nav-btn.dashboard {
+            background: rgba(6, 182, 212, 0.15);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            color: #06b6d4;
+        }
+
+        .nav-btn.dashboard:hover {
+            border-color: rgba(6, 182, 212, 0.5);
+            background: rgba(6, 182, 212, 0.2);
+        }
+
+        .nav-btn.resources {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #10b981;
+        }
+
+        .nav-btn.resources:hover {
+            border-color: rgba(16, 185, 129, 0.5);
+            background: rgba(16, 185, 129, 0.2);
+        }
+        
+        .nav-btn.timelapse {
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: #8b5cf6;
+        }
+        
+        .nav-btn.timelapse:hover {
+            border-color: rgba(139, 92, 246, 0.5);
+            background: rgba(139, 92, 246, 0.2);
+        }
+                .nav-btn.real-time {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #f59e0b;
+        }
+
+        .nav-btn.real-time:hover {
+            border-color: rgba(245, 158, 11, 0.5);
+            background: rgba(245, 158, 11, 0.2);
+        }
+        .nav-btn.early-warning {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .nav-btn.early-warning:hover {
+            border-color: rgba(239, 68, 68, 0.5);
+            background: rgba(239, 68, 68, 0.2);
+        }
+                .nav-btn.resources:hover {
+            border-color: rgba(16, 185, 129, 0.5);
+            background: rgba(16, 185, 129, 0.2);
+        }
+
+        .nav-btn.conservation {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+        }
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .hero-section {
+            text-align: center;
+            margin-bottom: 4rem;
+            padding: 2rem 0;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffffff, #d1fae5, #10b981);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            letter-spacing: -0.03em;
+        }
+
+        .hero-subtitle {
+            font-size: 1.3rem;
+            color: rgba(255,255,255,0.8);
+            max-width: 800px;
+            margin: 0 auto 2rem;
+            line-height: 1.6;
+        }
+
+        .resource-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .category-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(25px);
+            border-radius: 24px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .category-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .category-card.documentation::before { background: linear-gradient(90deg, #06b6d4, #0ea5e9); }
+        .category-card.research::before { background: linear-gradient(90deg, #8b5cf6, #a855f7); }
+        .category-card.training::before { background: linear-gradient(90deg, #10b981, #059669); }
+        .category-card.api::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
+        .category-card.case-studies::before { background: linear-gradient(90deg, #ef4444, #dc2626); }
+        .category-card.tools::before { background: linear-gradient(90deg, #06b6d4, #8b5cf6); }
+
+        .category-card:hover {
+            transform: translateY(-10px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .category-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .category-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: rgba(255,255,255,0.95);
+        }
+
+        .category-description {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .resource-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .resource-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .resource-item:last-child {
+            border-bottom: none;
+        }
+
+        .resource-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            padding-left: 1rem;
+            border-radius: 8px;
+        }
+
+        .resource-info {
+            flex: 1;
+        }
+
+        .resource-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .resource-name {
+            font-weight: 600;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 0.25rem;
+            transition: color 0.3s ease;
+        }
+
+        .resource-link:hover .resource-name {
+            color: #06b6d4;
+        }
+
+        .resource-desc {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.9rem;
+        }
+
+        .resource-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: rgba(255,255,255,0.5);
+            font-size: 0.8rem;
+        }
+
+        .resource-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-pdf {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .badge-video {
+            background: rgba(8, 145, 178, 0.2);
+            color: #0891b2;
+            border: 1px solid rgba(8, 145, 178, 0.3);
+        }
+
+        .badge-guide {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-code {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .badge-external {
+            background: rgba(139, 92, 246, 0.2);
+            color: #8b5cf6;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .featured-resources {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(25px);
+            border-radius: 24px;
+            padding: 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            margin-bottom: 4rem;
+            position: relative;
+        }
+
+        .featured-resources::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #10b981, #06b6d4, #8b5cf6);
+        }
+
+        .featured-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, #ffffff, #10b981);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .featured-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .featured-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .featured-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .featured-card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: rgba(255,255,255,0.95);
+            margin-bottom: 1rem;
+        }
+
+        .featured-card-desc {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .featured-card-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #10b981;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .featured-card-link:hover {
+            color: #059669;
+            transform: translateX(5px);
+        }
+
+        .community-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(25px);
+            border-radius: 24px;
+            padding: 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            margin-bottom: 4rem;
+            text-align: center;
+        }
+
+        .community-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #ffffff, #06b6d4);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .community-description {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        }
+
+        .community-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .community-link {
+            padding: 1rem 2rem;
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 12px;
+            color: #06b6d4;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .community-link:hover {
+            background: rgba(6, 182, 212, 0.2);
+            border-color: rgba(6, 182, 212, 0.5);
+            transform: translateY(-2px);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .resource-categories {
+                grid-template-columns: 1fr;
+            }
+            
+            .featured-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .community-links {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-effects" id="backgroundEffects"></div>
+    
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg class="water-wave-icon" viewBox="0 0 24 24">
+                        <path d="M3.5 18.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                        <path d="M3 12.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                        <path d="M3 6.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>GERD AI Analytics</h1>
+                    <div style="display: flex; align-items: center;">
+                        <div class="logo-subtitle">Knowledge & Resources</div>
+                        <span class="demo-badge">DEMO VERSION</span>
+                    </div>
+                </div>
+            </div>
+        <nav class="nav-buttons">
+         <a href="gerd_with_botpress_sidebar.html" class="nav-btn dashboard">Dashboard</a>
+         <a href="resources_page.html" class="nav-btn resources">Resources</a>
+         <a href="index.html" class="nav-btn timelapse">Timelapse</a>
+         <a href="gerd_solutions_center.html" class="nav-btn early-warning">Solutions Center</a>
+         <a href="realtime_monitoring.html" class="nav-btn real-time">Real-Time</a>
+         <a href="water_conservation_guide.html" class="nav-btn conservation">Guidelines</a>
+         </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <h1 class="hero-title">Knowledge Resources</h1>
+            <p class="hero-subtitle">
+                Comprehensive collection of technical documentation, research papers, best practices, 
+                and educational materials for professional water resource management
+            </p>
+        </section>
+
+        <!-- Resource Categories -->
+        <section class="resource-categories">
+            <div class="category-card documentation">
+                <div class="category-header">
+                    <div class="category-icon">
+                        <svg width="24" height="24" fill="#06b6d4" viewBox="0 0 24 24">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14,2 14,8 20,8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10,9 9,9 8,9"/>
+                        </svg>
+                    </div>
+                    <div class="category-title">Technical Documentation</div>
+                </div>
+                <div class="category-description">
+                    Comprehensive technical guides, system specifications, and operational procedures for water monitoring systems.
+                </div>
+                <ul class="resource-list">
+                    <li class="resource-item">
+                        <a href="https://pubs.usgs.gov/publication/tm9A0" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">USGS Water Quality Data Collection Standards</div>
+                                <div class="resource-desc">National Field Manual for Water-Quality Data Collection - official USGS protocols</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-pdf">PDF</span>
+                            <span>USGS</span>
+                        </div>
+                    </li>
+                    <li class="resource-item">
+                        <a href="https://www.usgs.gov/mission-areas/water-resources/science/measuring-and-monitoring-water" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">Water Monitoring Technologies</div>
+                                <div class="resource-desc">USGS comprehensive guide to measuring and monitoring water resources</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-guide">GUIDE</span>
+                            <span>Live docs</span>
+                        </div>
+                    </li>
+                    <li class="resource-item">
+                        <a href="https://waterservices.usgs.gov/" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">USGS Water Services API</div>
+                                <div class="resource-desc">REST APIs for accessing USGS water data from 1.9 million monitoring sites</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-code">API</span>
+                            <span>Live service</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="category-card research">
+                <div class="category-header">
+                    <div class="category-icon">
+                        <svg width="24" height="24" fill="#8b5cf6" viewBox="0 0 24 24">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                        </svg>
+                    </div>
+                    <div class="category-title">Research & Publications</div>
+                </div>
+                <div class="category-description">
+                    Latest research papers, scientific studies, and peer-reviewed publications in water resource management.
+                </div>
+                <ul class="resource-list">
+                    <li class="resource-item">
+                        <a href="https://www.nature.com/articles/s41597-025-05562-z" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">Global Multi-Sensor Water Index Dataset</div>
+                                <div class="resource-desc">Scientific Data: Surface water mapping using Landsat-8 and Sentinel-2 satellites</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-external">NATURE</span>
+                            <span>2025</span>
+                        </div>
+                    </li>
+                    <li class="resource-item">
+                        <a href="https://www.sciencedirect.com/science/article/abs/pii/S0924271623002538" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">Sentinel Satellites for Water Monitoring</div>
+                                <div class="resource-desc">Comprehensive review of Sentinel constellation applications in inland water monitoring</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-pdf">JOURNAL</span>
+                            <span>2023</span>
+                        </div>
+                    </li>
+                    <li class="resource-item">
+                        <a href="https://www.worldbank.org/en/topic/waterresourcesmanagement" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">World Bank Water Resources Management</div>
+                                <div class="resource-desc">Global water security research, policy frameworks and development strategies</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-guide">POLICY</span>
+                            <span>World Bank</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="category-card training">
+                <div class="category-header">
+                    <div class="category-icon">
+                        <svg width="24" height="24" fill="#10b981" viewBox="0 0 24 24">
+                            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                            <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                        </svg>
+                    </div>
+                    <div class="category-title">Training & Education</div>
+                </div>
+                <div class="category-description">
+                    Educational materials, training courses, and certification programs for water management professionals.
+                </div>
+                <ul class="resource-list">
+                    <li class="resource-item">
+                        <a href="https://appliedsciences.nasa.gov/get-involved/training/english/arset-monitoring-water-quality-inland-lakes-using-remote-sensing" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">NASA ARSET Water Quality Training</div>
+                                <div class="resource-desc">Advanced training on satellite monitoring of inland water quality using Landsat and Sentinel</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-video">NASA</span>
+                            <span>Online course</span>
+                        </div>
+                    </li>
+                    <li class="resource-item">
+                        <a href="https://appliedsciences.nasa.gov/get-involved/training/english/arset-processing-satellite-imagery-monitoring-water-quality" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">Satellite Imagery Processing for Water Monitoring</div>
+                                <div class="resource-desc">NASA ARSET training on processing satellite imagery for water quality assessment</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-guide">TRAINING</span>
+                            <span>Multi-session</span>
+                        </div>
+                    </li>
+                    <li class="resource-item">
+                        <a href="https://landsat.gsfc.nasa.gov/" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">Landsat Science Training Resources</div>
+                                <div class="resource-desc">NASA Landsat program educational materials and scientific applications</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-video">LANDSAT</span>
+                            <span>50+ years</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="category-card api">
+                <div class="category-header">
+                    <div class="category-icon">
+                        <svg width="24" height="24" fill="#f59e0b" viewBox="0 0 24 24">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                            <line x1="8" y1="21" x2="16" y2="21"/>
+                            <line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                    </div>
+                    <div class="category-title">API Documentation</div>
+                </div>
+                <div class="category-description">
+                    Complete API reference, code examples, and integration guides for developers.
+                </div>
+                <ul class="resource-list">
+                    <li class="resource-item">
+                        <a href="https://dataspace.copernicus.eu/" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">Copernicus Data Space Ecosystem</div>
+                                <div class="resource-desc">Complete API access to Sentinel satellite data with STAC, openEO, and Sentinel Hub APIs</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-code">API</span>
+                            <span>ESA</span>
+                        </div>
+                    </li>
+                    <li class="resource-item">
+                        <a href="https://www.earthdata.nasa.gov/data/platforms/space-based-platforms/sentinel-1" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">NASA Earthdata APIs</div>
+                                <div class="resource-desc">NASA's comprehensive Earth observation data access with REST APIs and tools</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-code">NASA</span>
+                            <span>Live service</span>
+                        </div>
+                    </li>
+                    <li class="resource-item">
+                        <a href="https://landsat.visibleearth.nasa.gov/" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">Landsat Image Gallery API</div>
+                                <div class="resource-desc">NASA's public domain Landsat imagery collection with programmatic access</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-code">IMAGERY</span>
+                            <span>50+ years data</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="category-card case-studies">
+                <div class="category-header">
+                    <div class="category-icon">
+                        <svg width="24" height="24" fill="#ef4444" viewBox="0 0 24 24">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                    </div>
+                    <div class="category-title">Case Studies</div>
+                </div>
+                <div class="category-description">
+                    Real-world implementation examples, lessons learned, and success stories from water management projects.
+                </div>
+                <ul class="resource-list">
+                    <li class="resource-item">
+                        <a href="https://eros.usgs.gov/earthshots/grand-ethiopian-renaissance-dam-ethiopia" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">GERD Satellite Monitoring - USGS EarthShots</div>
+                                <div class="resource-desc">USGS satellite imagery time series showing GERD construction and filling progress</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-external">USGS</span>
+                            <span>Satellite imagery</span>
+                        </div>
+                    </li>
+                    <li class="resource-item">
+                        <a href="https://eros.usgs.gov/earthshots/power-generation" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">Power Generation Monitoring - USGS EarthShots</div>
+                                <div class="resource-desc">USGS EarthShots collection showcasing power generation facilities and hydroelectric monitoring</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-external">USGS</span>
+                            <span>2024</span>
+                        </div>
+                    </li>
+                    <li class="resource-item">
+                        <a href="https://www.worldbank.org/en/topic/water/overview" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">World Bank Water Strategy Implementation</div>
+                                <div class="resource-desc">Global water security case studies and development project outcomes</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-pdf">CASE STUDY</span>
+                            <span>2024</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="category-card tools">
+                <div class="category-header">
+                    <div class="category-icon">
+                        <svg width="24" height="24" fill="#8b5cf6" viewBox="0 0 24 24">
+                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                        </svg>
+                    </div>
+                    <div class="category-title">Tools & Utilities</div>
+                </div>
+                <div class="category-description">
+                    Software tools, calculators, converters, and utilities for water resource management tasks.
+                </div>
+                <ul class="resource-list">
+                    <li class="resource-item">
+                        <a href="https://waterdata.usgs.gov/nwis" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">USGS Water Data for the Nation</div>
+                                <div class="resource-desc">Real-time water data from over 13,500 stations nationwide with interactive tools</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-code">TOOL</span>
+                            <span>Live data</span>
+                        </div>
+                    </li>
+                    <li class="resource-item">
+                        <a href="https://www.esa.int/Applications/Observing_the_Earth/Copernicus/Sentinel-2/Water_bodies" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">ESA Sentinel-2 Water Body Monitoring</div>
+                                <div class="resource-desc">European Space Agency tools for monitoring water quality and detecting harmful algal blooms</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-code">ESA</span>
+                            <span>Sentinel-2</span>
+                        </div>
+                    </li>
+                    <li class="resource-item">
+                        <a href="https://svs.gsfc.nasa.gov/gallery/landsat/" class="resource-link" target="_blank">
+                            <div class="resource-info">
+                                <div class="resource-name">NASA Scientific Visualization Studio</div>
+                                <div class="resource-desc">Landsat visualization tools and scientific data processing utilities</div>
+                            </div>
+                        </a>
+                        <div class="resource-meta">
+                            <span class="resource-badge badge-code">NASA</span>
+                            <span>Visualization</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Featured Resources -->
+        <section class="featured-resources">
+            <h2 class="featured-title">Featured Resources</h2>
+            <div class="featured-grid">
+                <div class="featured-card">
+                    <h3 class="featured-card-title">World Bank Water Security Framework</h3>
+                    <p class="featured-card-desc">Comprehensive methodology for evaluating regional water security using satellite data and evidence-based policy development from the world's largest water investment organization.</p>
+                    <a href="https://www.2030wrg.org/" class="featured-card-link" target="_blank">
+                        Access Framework
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M5 12h14m-7-7 7 7-7 7"/>
+                        </svg>
+                    </a>
+                </div>
+
+                <div class="featured-card">
+                    <h3 class="featured-card-title">ESA Copernicus Water Monitoring</h3>
+                    <p class="featured-card-desc">European Space Agency's comprehensive water monitoring system using Sentinel satellites for real-time inland water quality assessment and management.</p>
+                    <a href="https://dataspace.copernicus.eu/data-collections/copernicus-sentinel-data" class="featured-card-link" target="_blank">
+                        Access Data
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M5 12h14m-7-7 7 7-7 7"/>
+                        </svg>
+                    </a>
+                </div>
+
+                <div class="featured-card">
+                    <h3 class="featured-card-title">NASA Landsat Water Applications</h3>
+                    <p class="featured-card-desc">50+ years of continuous Earth observation data for water resource monitoring, with applications in agriculture, climate research, and water management.</p>
+                    <a href="https://landsat.gsfc.nasa.gov/article/category/benefits-to-people/water/" class="featured-card-link" target="_blank">
+                        Explore Applications
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M5 12h14m-7-7 7 7-7 7"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Community Section -->
+        <section class="community-section">
+            <h2 class="community-title">Join Our Professional Community</h2>
+            <p class="community-description">
+                Connect with water management professionals, researchers, and engineers from around the world. 
+                Share knowledge, collaborate on projects, and stay updated with the latest developments in water intelligence.
+            </p>
+            <div class="community-links">
+                <a href="https://www.esa.int/" class="community-link" target="_blank">ESA Earth Observation</a>
+                <a href="https://www.usgs.gov/mission-areas/water-resources" class="community-link" target="_blank">USGS Water Resources</a>
+                <a href="https://landsat.gsfc.nasa.gov/" class="community-link" target="_blank">NASA Landsat Program</a>
+                <a href="https://www.worldbank.org/en/topic/water" class="community-link" target="_blank">World Bank Water</a>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Initialize the resources page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeResources();
+            createFloatingParticles();
+        });
+
+        function initializeResources() {
+            console.log('Resources page initialized with real links');
+        }
+
+        function createFloatingParticles() {
+            const container = document.getElementById('backgroundEffects');
+            for (let i = 0; i < 15; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'floating-particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                color: white;
+                font-weight: 600;
+                z-index: 2000;
+                animation: slideInRight 0.3s ease;
+            `;
+            
+            switch (type) {
+                case 'success':
+                    notification.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                    break;
+                case 'warning':
+                    notification.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                    break;
+                case 'error':
+                    notification.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                    break;
+                default:
+                    notification.style.background = 'linear-gradient(135deg, #06b6d4, #0891b2)';
+            }
+            
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

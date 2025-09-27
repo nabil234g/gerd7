@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Monitoring - GERD Water Intelligence Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(245, 158, 11, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(251, 191, 36, 0.15) 0%, transparent 40%),
+                linear-gradient(135deg, #020617 0%, #082f49 50%, #0c4a6e 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .background-effects {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .floating-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(245, 158, 11, 0.4);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background: 
+                radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), transparent 70%),
+                linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(14, 165, 233, 0.2));
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #0ea5e9, #06b6d4, #0891b2, #0ea5e9);
+            border-radius: 20px;
+            opacity: 0.4;
+            z-index: -1;
+            animation: rotate 8s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .water-wave-icon {
+            width: 35px;
+            height: 35px;
+            fill: rgba(255,255,255,0.95);
+            filter: drop-shadow(0 2px 8px rgba(6, 182, 212, 0.3));
+        }
+
+        .logo h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff, #e0f2fe, #bae6fd);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-subtitle {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.8);
+            font-weight: 500;
+            margin-top: -2px;
+            background: linear-gradient(90deg, rgba(6, 182, 212, 0.8), rgba(14, 165, 233, 0.8));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .demo-badge {
+            font-size: 0.75rem;
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            margin-left: 1rem;
+            font-weight: 600;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            padding: 0.8rem 1.8rem;
+            backdrop-filter: blur(15px);
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+            font-size: 0.9rem;
+            position: relative;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .nav-btn.dashboard {
+            background: rgba(6, 182, 212, 0.15);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            color: #06b6d4;
+        }
+
+        .nav-btn.dashboard:hover {
+            border-color: rgba(6, 182, 212, 0.5);
+            background: rgba(6, 182, 212, 0.2);
+        }
+
+        .nav-btn.resources {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #10b981;
+        }
+
+        .nav-btn.resources:hover {
+            border-color: rgba(16, 185, 129, 0.5);
+            background: rgba(16, 185, 129, 0.2);
+        }
+        .conservation-guide-btn {
+    padding: 0.75rem 1.5rem;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 12px;
+    color: #22c55e;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.conservation-guide-btn:hover {
+    background: rgba(34, 197, 94, 0.2);
+    border-color: rgba(34, 197, 94, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(34, 197, 94, 0.2);
+}
+        .nav-btn.timelapse {
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: #8b5cf6;
+        }
+
+        .nav-btn.timelapse:hover {
+            border-color: rgba(139, 92, 246, 0.5);
+            background: rgba(139, 92, 246, 0.2);
+        }
+
+        .nav-btn.early-warning {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .nav-btn.early-warning:hover {
+            border-color: rgba(239, 68, 68, 0.5);
+            background: rgba(239, 68, 68, 0.2);
+        }
+                .nav-btn.resources:hover {
+            border-color: rgba(16, 185, 129, 0.5);
+            background: rgba(16, 185, 129, 0.2);
+        }
+
+        .nav-btn.conservation {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+        }
+        .nav-btn.real-time {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #f59e0b;
+        }
+
+        .nav-btn.real-time:hover {
+            border-color: rgba(245, 158, 11, 0.5);
+            background: rgba(245, 158, 11, 0.2);
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .hero-section {
+            text-align: center;
+            margin-bottom: 4rem;
+            padding: 2rem 0;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffffff, #fef3c7, #f59e0b);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            letter-spacing: -0.03em;
+        }
+
+        .hero-subtitle {
+            font-size: 1.3rem;
+            color: rgba(255,255,255,0.8);
+            max-width: 800px;
+            margin: 0 auto 2rem;
+            line-height: 1.6;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem;
+            margin: 2rem 0;
+            padding: 1rem 2rem;
+            background: rgba(245, 158, 11, 0.1);
+            border-radius: 16px;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: rgba(255,255,255,0.9);
+            font-weight: 500;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 4rem;
+        }
+
+        .dashboard-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(25px);
+            border-radius: 24px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #f59e0b, #fbbf24, #f97316);
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: rgba(255,255,255,0.95);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .section-icon {
+            width: 32px;
+            height: 32px;
+            fill: #f59e0b;
+        }
+
+        .weather-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .weather-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .weather-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .weather-location {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #f59e0b;
+            margin-bottom: 1rem;
+        }
+
+        .weather-temp {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: rgba(255,255,255,0.95);
+            margin-bottom: 0.5rem;
+        }
+
+        .weather-desc {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 1rem;
+        }
+
+        .weather-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin: 1.5rem 0;
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: rgba(255,255,255,0.95);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #f59e0b, #fbbf24);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .metric-label {
+            color: rgba(255,255,255,0.7);
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .metric-change {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .metric-change.positive {
+            color: #10b981;
+        }
+
+        .metric-change.negative {
+            color: #ef4444;
+        }
+
+        .metric-change.neutral {
+            color: rgba(255,255,255,0.6);
+        }
+
+        .comparison-section {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(25px);
+            border-radius: 24px;
+            padding: 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            margin: 3rem 0;
+            position: relative;
+        }
+
+        .comparison-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #f59e0b, #10b981, #06b6d4);
+        }
+
+        .refresh-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .refresh-btn {
+            padding: 0.75rem 1.5rem;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 12px;
+            color: #f59e0b;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(245, 158, 11, 0.2);
+            border-color: rgba(245, 158, 11, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .refresh-btn.auto-refresh.active {
+            background: rgba(245, 158, 11, 0.3);
+            border-color: #f59e0b;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(245, 158, 11, 0.3);
+            border-radius: 50%;
+            border-top-color: #f59e0b;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .alert-banner {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin: 1rem 0;
+            display: none;
+        }
+
+        .alert-banner.show {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .alert-icon {
+            width: 24px;
+            height: 24px;
+            fill: #ef4444;
+        }
+
+        .alert-text {
+            color: rgba(255,255,255,0.9);
+            font-weight: 600;
+        }
+
+        .data-quality-indicator {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            margin: 1rem 0;
+        }
+
+        .quality-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .quality-real {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .quality-estimated {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .quality-satellite {
+            background: rgba(139, 92, 246, 0.2);
+            color: #8b5cf6;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .last-updated {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.9rem;
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .main-dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .weather-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .status-bar {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-effects" id="backgroundEffects"></div>
+    
+     <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg class="water-wave-icon" viewBox="0 0 24 24">
+                        <path d="M3.5 18.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                        <path d="M3 12.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                        <path d="M3 6.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>GERD AI Analytics</h1>
+                    <div style="display: flex; align-items: center;">
+                        <div class="logo-subtitle">Real-Time Water Intelligence</div>
+                        <span class="demo-badge">DEMO VERSION</span>
+                    </div>
+                </div>
+            </div>
+         <nav class="nav-buttons">
+         <a href="gerd_with_botpress_sidebar.html" class="nav-btn dashboard">Dashboard</a>
+         <a href="resources_page.html" class="nav-btn resources">Resources</a>
+         <a href="index.html" class="nav-btn timelapse">Timelapse</a>
+         <a href="gerd_solutions_center.html" class="nav-btn early-warning">Solutions Center</a>
+         <a href="realtime_monitoring.html" class="nav-btn real-time">Real-Time</a>
+         <a href="water_conservation_guide.html" class="nav-btn conservation">Guidelines</a>
+         </nav>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <h1 class="hero-title">Real-Time Monitoring</h1>
+            <p class="hero-subtitle">
+                Live water and weather conditions with comprehensive Nile River impact analysis 
+                and real-time comparison between GERD dam status and downstream effects
+            </p>
+            
+            <div class="status-bar">
+                <div class="status-item">
+                    <div class="status-indicator"></div>
+                    <span>GERD Monitoring: Active</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-indicator"></div>
+                    <span>Weather Data: Live</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-indicator"></div>
+                    <span>Nile Levels: Tracking</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-indicator"></div>
+                    <span>Impact Analysis: Real-Time</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Refresh Controls -->
+        <div class="refresh-controls">
+            <button class="refresh-btn" onclick="refreshAllData()">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 4V2l3 3-3 3V6c-3.31 0-6 2.69-6 6 0 1.01.25 1.97.7 2.8L5.24 16.26C4.46 15.04 4 13.57 4 12c0-4.42 3.58-8 8-8z"/>
+                    <path d="M20 12c0 4.42-3.58 8-8 8v2l-3-3 3-3v2c3.31 0 6-2.69 6-6 0-1.01-.25-1.97-.7-2.8l1.46-1.46C19.54 8.96 20 10.43 20 12z"/>
+                </svg>
+                <div class="loading-spinner" id="loadingSpinner"></div>
+                <span>Refresh Data</span>
+            </button>
+            <button class="refresh-btn auto-refresh" onclick="toggleAutoRefresh()">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12,6 12,12 16,14"/>
+                </svg>
+                <span id="autoRefreshText">Auto Refresh: Off</span>
+            </button>
+        </div>
+
+        <!-- Alert Banner -->
+        <div class="alert-banner" id="alertBanner">
+            <svg class="alert-icon" viewBox="0 0 24 24">
+                <path d="M12 9v4"/>
+                <path d="M12 17h.01"/>
+                <circle cx="12" cy="12" r="10"/>
+            </svg>
+            <div class="alert-text" id="alertText">System Alert</div>
+        </div>
+
+        <!-- Main Dashboard -->
+        <section class="main-dashboard">
+            <!-- Current Weather Conditions -->
+            <div class="dashboard-section">
+                <h2 class="section-title">
+                    <svg class="section-icon" viewBox="0 0 24 24">
+                        <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+                    </svg>
+                    Current Weather Conditions
+                </h2>
+                
+                <div class="weather-grid" id="weatherGrid">
+                    <!-- Weather cards will be populated by JavaScript -->
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">Weather Monitoring Dashboard</div>
+                    <div id="weatherChart"></div>
+                </div>
+            </div>
+
+            <!-- GERD Dam Status -->
+            <div class="dashboard-section">
+                <h2 class="section-title">
+                    <svg class="section-icon" viewBox="0 0 24 24">
+                        <path d="M3.5 18.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                        <path d="M3 12.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                        <path d="M3 6.5l6-6s2.5-2 5-2 5 2 5 2l6 6"/>
+                    </svg>
+                    GERD Dam Status
+                </h2>
+                
+                <div class="chart-container">
+                    <div class="chart-title">Water Level Gauge</div>
+                    <div id="gerdGauge"></div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="currentLevel">---</div>
+                        <div class="metric-label">Current Level (m)</div>
+                        <div class="metric-change neutral" id="levelChange">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M7 14l5-5 5 5"/>
+                            </svg>
+                            <span>Calculating...</span>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-value" id="storagePercent">---</div>
+                        <div class="metric-label">Storage Capacity</div>
+                        <div class="metric-change neutral" id="storageChange">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M7 14l5-5 5 5"/>
+                            </svg>
+                            <span>Normal Range</span>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-value" id="powerGeneration">---</div>
+                        <div class="metric-label">Power Generation (MW)</div>
+                        <div class="metric-change neutral" id="powerChange">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M7 14l5-5 5 5"/>
+                            </svg>
+                            <span>Operational</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+         
+        <!-- Nile River Impact Analysis -->
+        <section class="comparison-section">
+            <h2 class="section-title">
+                <svg class="section-icon" viewBox="0 0 24 24">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    <circle cx="12" cy="12" r="4"/>
+                </svg>
+                GERD vs Nile River Comparison & Impact Analysis
+            </h2>
+            
+            <div class="chart-container">
+                <div class="chart-title">Historical Comparison: GERD Water Level vs Nile Flow</div>
+                <div id="comparisonChart"></div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title">Nile River Monitoring Stations</div>
+                <div id="riverMonitoringChart"></div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title">Regional Impact Assessment</div>
+                <div id="impactChart"></div>
+            </div>
+        </section>
+         <a href="water_conservation_guide.html" class="conservation-guide-btn">
+    <svg width="4" height="4" fill="currentColor" viewBox="0 0 4 4">
+        <path d="M12 2v20M12 2l-3 3m3-3l3 3"/>
+        <circle cx="4" cy="4" r="3"/>
+    </svg>
+    <span>Smart Conservation Guide</span>
+</a>
+        <!-- Data Quality Indicator -->
+        <div class="data-quality-indicator" id="dataQualityIndicator">
+            <div>
+                <strong style="color: rgba(255,255,255,0.9);">Data Sources:</strong>
+            </div>
+            <div class="quality-badge quality-real">Weather: Real API</div>
+            <div class="quality-badge quality-estimated">River: Estimated</div>
+            <div class="quality-badge quality-satellite">GERD: Satellite</div>
+            <div style="margin-left: auto;">
+                <span class="last-updated" id="lastUpdated">Last Updated: ---</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let dashboardData = null;
+        let autoRefreshInterval = null;
+        let isAutoRefreshEnabled = false;
+        const API_BASE_URL = '/api';
+
+        // Initialize the real-time monitoring system
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeRealTimeMonitoring();
+            createFloatingParticles();
+        });
+
+        function initializeRealTimeMonitoring() {
+            console.log('Initializing Real-Time GERD Monitoring System...');
+            loadDashboardData();
+            
+            // Set up periodic updates every 5 minutes
+            setInterval(loadDashboardData, 300000);
+        }
+
+        function createFloatingParticles() {
+            const container = document.getElementById('backgroundEffects');
+            for (let i = 0; i < 15; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'floating-particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        async function loadDashboardData() {
+            showLoadingState();
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/dashboard`);
+                
+                if (!response.ok) {
+                    throw new Error(`Server responded with ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    dashboardData = result.data;
+                    updateDashboard(result.data);
+                    hideLoadingState();
+                    showSuccessMessage('Data refreshed successfully');
+                } else {
+                    throw new Error(result.error || 'Failed to load dashboard data');
+                }
+                
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                hideLoadingState();
+                showErrorMessage('Unable to connect to monitoring server. Using cached data.');
+                loadFallbackData();
+            }
+        }
+
+        function updateDashboard(data) {
+            // Update weather conditions
+            updateWeatherGrid(data.gerd_weather, data.nile_weather);
+            
+            // Update GERD status
+            updateGERDStatus(data.gerd_status);
+            
+            // Update charts
+            updateCharts(data.plots);
+            
+            // Update data quality indicator
+            updateDataQuality(data.data_quality, data.last_updated);
+        }
+
+        function updateWeatherGrid(gerdWeather, nileWeather) {
+            const weatherGrid = document.getElementById('weatherGrid');
+            weatherGrid.innerHTML = '';
+
+            // Add GERD weather card
+            const gerdCard = createWeatherCard('GERD Dam Area', gerdWeather);
+            weatherGrid.appendChild(gerdCard);
+
+            // Add Nile station weather cards
+            Object.entries(nileWeather).forEach(([stationId, weatherData]) => {
+                const card = createWeatherCard(weatherData.location || stationId, weatherData);
+                weatherGrid.appendChild(card);
+            });
+        }
+
+        function createWeatherCard(location, weather) {
+            const card = document.createElement('div');
+            card.className = 'weather-card';
+            
+            card.innerHTML = `
+                <div class="weather-location">${location}</div>
+                <div class="weather-temp">${weather.temperature.toFixed(1)}°C</div>
+                <div class="weather-desc">${weather.description}</div>
+                <div class="weather-details">
+                    <div>Humidity: ${weather.humidity}%</div>
+                    <div>Wind: ${weather.wind_speed.toFixed(1)} m/s</div>
+                    <div>Pressure: ${weather.pressure.toFixed(0)} hPa</div>
+                    <div>Precip: ${weather.precipitation.toFixed(1)} mm</div>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        function updateGERDStatus(gerdStatus) {
+            document.getElementById('currentLevel').textContent = `${gerdStatus.current_level.toFixed(1)}m`;
+            document.getElementById('storagePercent').textContent = `${gerdStatus.storage_percentage.toFixed(1)}%`;
+            document.getElementById('powerGeneration').textContent = `${gerdStatus.power_generation.toFixed(0)}MW`;
+            
+            // Update level change indicator
+            const levelChange = document.getElementById('levelChange');
+            const levelTrend = gerdStatus.current_level > 635 ? 'positive' : gerdStatus.current_level < 625 ? 'negative' : 'neutral';
+            levelChange.className = `metric-change ${levelTrend}`;
+            levelChange.querySelector('span').textContent = levelTrend === 'positive' ? 'Above Normal' : 
+                                                           levelTrend === 'negative' ? 'Below Normal' : 'Normal Range';
+        }
+
+        function updateCharts(plots) {
+            // Update GERD gauge
+            if (plots.gerd_gauge) {
+                Plotly.newPlot('gerdGauge', plots.gerd_gauge.data, plots.gerd_gauge.layout, {
+                    displayModeBar: false,
+                    responsive: true
+                });
+            }
+            
+            // Update weather dashboard
+            if (plots.weather_dashboard) {
+                Plotly.newPlot('weatherChart', plots.weather_dashboard.data, plots.weather_dashboard.layout, {
+                    displayModeBar: false,
+                    responsive: true
+                });
+            }
+            
+            // Update historical comparison
+            if (plots.historical_comparison) {
+                Plotly.newPlot('comparisonChart', plots.historical_comparison.data, plots.historical_comparison.layout, {
+                    displayModeBar: false,
+                    responsive: true
+                });
+            }
+            
+            // Update river monitoring
+            if (plots.river_monitoring) {
+                Plotly.newPlot('riverMonitoringChart', plots.river_monitoring.data, plots.river_monitoring.layout, {
+                    displayModeBar: false,
+                    responsive: true
+                });
+            }
+            
+            // Update impact assessment
+            if (plots.impact_assessment) {
+                Plotly.newPlot('impactChart', plots.impact_assessment.data, plots.impact_assessment.layout, {
+                    displayModeBar: false,
+                    responsive: true
+                });
+            }
+        }
+
+        function updateDataQuality(dataQuality, lastUpdated) {
+            const lastUpdatedEl = document.getElementById('lastUpdated');
+            lastUpdatedEl.textContent = `Last Updated: ${new Date(lastUpdated).toLocaleTimeString()}`;
+        }
+
+        function refreshAllData() {
+            loadDashboardData();
+        }
+
+        function toggleAutoRefresh() {
+            const btn = document.querySelector('.auto-refresh');
+            const text = document.getElementById('autoRefreshText');
+            
+            if (isAutoRefreshEnabled) {
+                clearInterval(autoRefreshInterval);
+                isAutoRefreshEnabled = false;
+                btn.classList.remove('active');
+                text.textContent = 'Auto Refresh: Off';
+            } else {
+                autoRefreshInterval = setInterval(loadDashboardData, 60000); // Every minute
+                isAutoRefreshEnabled = true;
+                btn.classList.add('active');
+                text.textContent = 'Auto Refresh: On';
+            }
+        }
+
+        function showLoadingState() {
+            document.getElementById('loadingSpinner').style.display = 'inline-block';
+        }
+
+        function hideLoadingState() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+
+        function showSuccessMessage(message) {
+            console.log('Success:', message);
+        }
+
+        function showErrorMessage(message) {
+            const alertBanner = document.getElementById('alertBanner');
+            const alertText = document.getElementById('alertText');
+            
+            alertText.textContent = message;
+            alertBanner.classList.add('show');
+            
+            setTimeout(() => {
+                alertBanner.classList.remove('show');
+            }, 5000);
+        }
+
+        function loadFallbackData() {
+            // Load fallback data when server is not available
+            const fallbackData = {
+                gerd_weather: {
+                    location: 'GERD Dam Area',
+                    temperature: 28.5,
+                    humidity: 62,
+                    pressure: 1015.2,
+                    wind_speed: 3.2,
+                    precipitation: 2.1,
+                    description: 'Partly Cloudy'
+                },
+                nile_weather: {
+                    aswan: {
+                        location: 'Aswan High Dam',
+                        temperature: 32.1,
+                        humidity: 35,
+                        pressure: 1018.1,
+                        wind_speed: 2.8,
+                        precipitation: 0.0,
+                        description: 'Clear Sky'
+                    }
+                },
+                gerd_status: {
+                    current_level: 635.2,
+                    storage_percentage: 72.5,
+                    power_generation: 2850
+                },
+                data_quality: {
+                    weather_data: 'estimated',
+                    overall_confidence: 65
+                },
+                last_updated: new Date().toISOString()
+            };
+            
+            updateDashboard(fallbackData);
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>
